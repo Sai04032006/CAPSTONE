@@ -18,3 +18,28 @@ export const createStudent = async (studentData) => {
   });
   return response.data;
 };
+
+export const enrollStudent = async (enrollData) => {
+  const payload = {
+    student_id: enrollData.student_id.trim(),
+    name: enrollData.name.trim(),
+    email: enrollData.email ? enrollData.email.trim() : null,
+    image: enrollData.image || null,
+    images: enrollData.images || null,
+    overwrite: Boolean(enrollData.overwrite),
+  };
+  const response = await apiClient.post('/students/enroll', payload);
+  return response.data;
+};
+
+export const detectFace = async (imageData) => {
+  const response = await apiClient.post('/students/detect-face', {
+    image: imageData,
+  });
+  return response.data;
+};
+
+export const getStudentEmbeddingStatus = async (studentId) => {
+  const response = await apiClient.get(`/students/${encodeURIComponent(studentId)}/embedding-status`);
+  return response.data;
+};
