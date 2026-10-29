@@ -1,0 +1,38 @@
+# Virtual Environment
+.venv/
+venv/
+env/
+ENV/
+
+# IDE & Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node.js
+node_modules/
+dist/
+build/
+frontend/node_modules/
+frontend/dist/
+
+# Python Cache & Bytecode
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Runtime Logs & Stop Flags
+storage/*.log
+storage/*.flag
+*.log
+
+# Local databases
+*.db
+*.sqlite3
+
+# Environment files
+.env.local
+.env.*.local

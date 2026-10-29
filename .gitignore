@@ -1,0 +1,40 @@
+# Virtual Environment
+.venv/
+venv/
+env/
+ENV/
+
+# IDE & Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node.js
+**/node_modules/
+**/dist/
+**/build/
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python Cache & Bytecode
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+**/*.pyc
+**/.pytest_cache/
+
+# Runtime Logs & Stop Flags
+**/storage/*.log
+**/storage/*.flag
+*.log
+
+# Local SQLite databases
+*.db
+*.sqlite3
+
+# Environment files
+**/.env.local
+**/.env.*.local
