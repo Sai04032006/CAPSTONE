@@ -9,6 +9,7 @@ class StudentCreate(BaseModel):
     student_id: str
     name: str
     email: str | None = None
+    teacher_id: str | None = None
 
 
 # ============================================================
@@ -20,6 +21,7 @@ class StudentResponse(BaseModel):
     student_id: str
     name: str
     email: str | None = None
+    teacher_id: str | None = None
     has_embedding: bool = False
 
     class Config:

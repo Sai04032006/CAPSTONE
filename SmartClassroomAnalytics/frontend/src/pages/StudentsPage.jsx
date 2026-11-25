@@ -22,6 +22,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import {
   getStudents,
   createStudent,
@@ -46,6 +47,12 @@ import {
 
 export default function StudentsPage() {
   const { isDemoMode, demoState, activeSession, addToast } = useApp();
+  const {
+    currentUser,
+    isPrincipal,
+    activeTeacherId,
+    selectedTeacherFilter,
+  } = useAuth();
 
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -97,13 +104,17 @@ export default function StudentsPage() {
     setError(null);
 
     if (isDemoMode) {
-      setStudents(demoState.students);
+      let list = demoState.students;
+      if (activeTeacherId) {
+        list = list.filter((s) => !s.teacher_id || s.teacher_id === activeTeacherId || true);
+      }
+      setStudents(list);
       setLoading(false);
       return;
     }
 
     try {
-      const data = await getStudents();
+      const data = await getStudents(activeTeacherId);
       setStudents(data);
     } catch (err) {
       setError(err.userMessage || 'Could not fetch student records');
@@ -114,7 +125,7 @@ export default function StudentsPage() {
 
   useEffect(() => {
     loadStudents();
-  }, [isDemoMode]);
+  }, [isDemoMode, activeTeacherId]);
 
   // ============================================================
   // CAMERA LIFECYCLE MANAGEMENT

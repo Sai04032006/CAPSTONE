@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Radio,
@@ -11,21 +11,38 @@ import {
   GraduationCap,
   Sparkles,
   ChevronRight,
+  Activity,
+  Shield,
+  LogOut,
+  User,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-
-const NAV_ITEMS = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/live', label: 'Live Monitoring', icon: Radio, highlight: true },
-  { path: '/students', label: 'Students', icon: Users },
-  { path: '/attendance', label: 'Attendance', icon: CheckSquare },
-  { path: '/sessions', label: 'Class Sessions', icon: CalendarDays },
-  { path: '/analytics', label: 'Analytics & Reports', icon: BarChart3 },
-  { path: '/settings', label: 'Settings', icon: Settings },
-];
+import { useAuth } from '../../context/AuthContext';
 
 export default function Sidebar({ isOpen, onClose }) {
+  const navigate = useNavigate();
   const { activeSession, backendStatus, isDemoMode } = useApp();
+  const { currentUser, isPrincipal, logout } = useAuth();
+
+  const navItems = [
+    { path: '/', label: isPrincipal ? 'School Dashboard' : 'My Dashboard', icon: LayoutDashboard },
+    { path: '/evaluation', label: 'Evaluation Metrics', icon: Activity, badge: 'AI' },
+    { path: '/live', label: 'Live Monitoring', icon: Radio, highlight: true },
+    { path: '/students', label: isPrincipal ? 'All Students' : 'My Students', icon: Users },
+    { path: '/attendance', label: isPrincipal ? 'Attendance Reports' : 'My Attendance', icon: CheckSquare },
+    { path: '/sessions', label: isPrincipal ? 'All Class Sessions' : 'My Sessions', icon: CalendarDays },
+    { path: '/analytics', label: 'Analytics & Reports', icon: BarChart3 },
+    ...(isPrincipal
+      ? [{ path: '/teachers', label: 'Faculty Management', icon: Shield, badge: 'Admin' }]
+      : []),
+    { path: '/settings', label: 'Settings', icon: Settings },
+  ];
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+    if (onClose) onClose();
+  };
 
   return (
     <>
@@ -61,12 +78,52 @@ export default function Sidebar({ isOpen, onClose }) {
           </div>
         </div>
 
+        {/* User Profile Banner in Sidebar */}
+        <div className="px-4 py-3 bg-slate-850/60 border-b border-slate-800/80">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div
+                className={`h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0 ${
+                  isPrincipal
+                    ? 'bg-gradient-to-tr from-purple-600 to-pink-500'
+                    : 'bg-gradient-to-tr from-indigo-600 to-blue-500'
+                }`}
+              >
+                {isPrincipal ? 'P' : currentUser?.teacher_id || 'T'}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-white truncate">
+                  {currentUser?.name || (isPrincipal ? 'Principal' : 'Teacher')}
+                </p>
+                <div className="flex items-center gap-1">
+                  <span
+                    className={`text-[10px] font-medium px-1.5 py-0.2 rounded ${
+                      isPrincipal
+                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                        : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                    }`}
+                  >
+                    {isPrincipal ? 'Principal (Admin)' : `Teacher #${currentUser?.teacher_id}`}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              title="Logout / Switch Account"
+              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer shrink-0"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
         {/* Navigation list */}
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
           <div className="px-3 pb-2 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
-            Navigation
+            {isPrincipal ? 'School Administration' : 'Teacher Portal'}
           </div>
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             return (
               <NavLink
@@ -76,7 +133,9 @@ export default function Sidebar({ isOpen, onClose }) {
                 className={({ isActive }) =>
                   `group flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive
-                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
+                      ? isPrincipal
+                        ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30'
+                        : 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
                       : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
                   }`
                 }
@@ -85,12 +144,19 @@ export default function Sidebar({ isOpen, onClose }) {
                   <Icon className="h-4 w-4 shrink-0 transition-transform group-hover:scale-110" />
                   <span>{item.label}</span>
                 </div>
-                {item.highlight && activeSession && (
-                  <span className="flex h-2 w-2 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                  </span>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {item.badge && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
+                      {item.badge}
+                    </span>
+                  )}
+                  {item.highlight && activeSession && (
+                    <span className="flex h-2 w-2 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                  )}
+                </div>
               </NavLink>
             );
           })}

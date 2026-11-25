@@ -37,14 +37,31 @@ from .routes.stream import (
     router as stream_router
 )
 
+from .routes.auth import (
+    router as auth_router
+)
+
+from .routes.evaluation import (
+    router as evaluation_router
+)
+
+from .services.auth_service import seed_default_users
+from .database.database import SessionLocal
+
 
 # ============================================================
-# CREATE DATABASE TABLES
+# CREATE DATABASE TABLES & SEED DEFAULT USERS
 # ============================================================
 
 Base.metadata.create_all(
     bind=engine
 )
+
+try:
+    with SessionLocal() as db_session:
+        seed_default_users(db_session)
+except Exception as _e:
+    pass
 
 
 # ============================================================
@@ -102,6 +119,14 @@ app.include_router(
 
 app.include_router(
     stream_router
+)
+
+app.include_router(
+    auth_router
+)
+
+app.include_router(
+    evaluation_router
 )
 
 

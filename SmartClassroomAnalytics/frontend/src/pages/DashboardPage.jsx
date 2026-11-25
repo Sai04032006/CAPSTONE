@@ -13,8 +13,13 @@ import {
   Eye,
   ShieldCheck,
   AlertTriangle,
+  GraduationCap,
+  Activity,
+  Shield,
+  Layers,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { getStudents } from '../api/students';
 import { getSessions } from '../api/sessions';
 import { getSessionAttendance } from '../api/attendance';
@@ -35,6 +40,15 @@ import {
 
 export default function DashboardPage() {
   const { isDemoMode, demoState, activeSession, backendStatus } = useApp();
+  const {
+    currentUser,
+    isPrincipal,
+    isTeacher,
+    activeTeacherId,
+    selectedTeacherFilter,
+    setSelectedTeacherFilter,
+    teachersList,
+  } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -50,9 +64,16 @@ export default function DashboardPage() {
     setError(null);
 
     if (isDemoMode) {
-      // Load from demoState
-      const demoStudents = demoState.students;
-      const demoSessions = demoState.sessions;
+      // Filter demo sessions and students if teacher or filtered
+      let demoSessions = demoState.sessions;
+      let demoStudents = demoState.students;
+
+      if (activeTeacherId) {
+        demoSessions = demoSessions.filter(
+          (s) => !s.teacher_id || s.teacher_id === activeTeacherId
+        );
+      }
+
       const latest = demoSessions[0];
       const att = latest
         ? demoState.attendance.filter((a) => a.session_id === latest.id)
@@ -91,10 +112,10 @@ export default function DashboardPage() {
     }
 
     try {
-      // Real API calls
+      // Real API calls with activeTeacherId scoping
       const [studentsData, sessionsData] = await Promise.all([
-        getStudents(),
-        getSessions(),
+        getStudents(activeTeacherId),
+        getSessions(activeTeacherId),
       ]);
 
       setStudents(studentsData);
@@ -110,7 +131,6 @@ export default function DashboardPage() {
           setLatestAttendance(attData);
           setSessionAnalytics(analyticsData);
         } catch {
-          // If session analytics fail, fallback to local calculation
           const attData = await getSessionAttendance(latest.id).catch(() => []);
           setLatestAttendance(attData);
           const pres = attData.filter((a) => a.status === 'PRESENT').length;
@@ -123,7 +143,7 @@ export default function DashboardPage() {
         }
       }
 
-      // Generate chart for up to 5 recent sessions
+      // Generate chart for recent sessions
       const recent = sessionsData.slice(0, 5).reverse();
       const chartPromises = recent.map(async (s) => {
         try {
@@ -155,12 +175,89 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadData();
-  }, [isDemoMode]);
+  }, [isDemoMode, activeTeacherId]);
 
   const latestSession = sessions[0] || null;
 
   return (
     <div className="space-y-6">
+      {/* Role-Specific Header Banner */}
+      {isPrincipal ? (
+        <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 rounded-2xl p-5 text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="px-2.5 py-0.5 rounded-full bg-purple-500/30 text-purple-200 text-xs font-semibold border border-purple-400/30 flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5 text-purple-300" />
+                School Principal Dashboard (Global Admin)
+              </span>
+              {selectedTeacherFilter && (
+                <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-xs font-mono">
+                  Filtered: Teacher #{selectedTeacherFilter}
+                </span>
+              )}
+            </div>
+            <h2 className="text-xl font-bold tracking-tight">
+              {selectedTeacherFilter
+                ? `Viewing Records for Teacher #${selectedTeacherFilter}`
+                : 'School-Wide Real-Time Analytics Overview'}
+            </h2>
+            <p className="text-xs text-purple-200/80 mt-1 max-w-xl">
+              {selectedTeacherFilter
+                ? 'Inspecting individual teacher performance, student attendance rates, and active classroom monitoring.'
+                : `Comprehensive oversight across all ${teachersList.length} faculty members, all enrolled students, and classroom sessions.`}
+            </p>
+          </div>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <Link to="/evaluation">
+              <Button variant="secondary" className="!bg-purple-800/80 !text-white border-purple-700 text-xs">
+                <Activity className="h-3.5 w-3.5 mr-1 text-emerald-400" />
+                Evaluation Metrics
+              </Button>
+            </Link>
+            <Link to="/teachers">
+              <Button variant="primary" className="!bg-purple-600 hover:!bg-purple-500 text-xs shadow-md">
+                <Shield className="h-3.5 w-3.5 mr-1" />
+                Faculty Directory
+              </Button>
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-5 text-white shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 text-xs font-semibold border border-indigo-400/30 flex items-center gap-1.5">
+                <GraduationCap className="h-3.5 w-3.5 text-indigo-300" />
+                Teacher Portal • ID: #{currentUser?.teacher_id || '1001'}
+              </span>
+              <span className="text-xs text-slate-300">
+                {currentUser?.subject || 'Classroom Teacher'}
+              </span>
+            </div>
+            <h2 className="text-xl font-bold tracking-tight">
+              Welcome back, {currentUser?.name || 'Teacher'}!
+            </h2>
+            <p className="text-xs text-slate-300/80 mt-1">
+              Viewing your assigned classroom sessions, enrolled students, and verified attendance rates.
+            </p>
+          </div>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <Link to="/evaluation">
+              <Button variant="secondary" className="!bg-slate-800 !text-slate-200 border-slate-700 text-xs">
+                <Activity className="h-3.5 w-3.5 mr-1 text-indigo-400" />
+                Evaluation Metrics
+              </Button>
+            </Link>
+            <Link to="/sessions">
+              <Button variant="primary" className="text-xs shadow-md">
+                <PlusCircle className="h-3.5 w-3.5 mr-1" />
+                New Class Session
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Active Session Highlight Callout if session is running */}
       {activeSession && (
         <div className="bg-gradient-to-r from-indigo-900 to-slate-900 rounded-2xl p-5 text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

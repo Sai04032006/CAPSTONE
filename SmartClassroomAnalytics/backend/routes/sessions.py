@@ -82,6 +82,10 @@ def create_session(
 
         subject=session_data.subject,
 
+        teacher_id=session_data.teacher_id,
+
+        teacher_name=session_data.teacher_name,
+
         duration_minutes=
             session_data.duration_minutes,
 
@@ -116,12 +120,17 @@ def create_session(
     response_model=list[SessionResponse]
 )
 def get_sessions(
+    teacher_id: str | None = None,
     db: Session = Depends(get_db)
 ):
 
+    query = db.query(ClassSession)
+
+    if teacher_id:
+        query = query.filter(ClassSession.teacher_id == teacher_id)
+
     return (
-        db.query(ClassSession)
-        .order_by(
+        query.order_by(
             ClassSession.id.desc()
         )
         .all()
@@ -137,19 +146,23 @@ def get_sessions(
     response_model=SessionResponse
 )
 def get_active_session(
+    teacher_id: str | None = None,
     db: Session = Depends(get_db)
 ):
 
-    session = (
+    query = (
         db.query(ClassSession)
         .filter(
             ClassSession.status == "ACTIVE"
         )
-        .order_by(
-            ClassSession.id.desc()
-        )
-        .first()
     )
+
+    if teacher_id:
+        query = query.filter(ClassSession.teacher_id == teacher_id)
+
+    session = query.order_by(
+        ClassSession.id.desc()
+    ).first()
 
     if not session:
 

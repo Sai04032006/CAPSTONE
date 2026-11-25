@@ -29,6 +29,7 @@ import {
   Cell,
 } from 'recharts';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { getSessions } from '../api/sessions';
 import { getStudents } from '../api/students';
 import { getSessionAttendance } from '../api/attendance';
@@ -58,6 +59,7 @@ const BEHAVIOR_COLORS = ['#f59e0b', '#ef4444', '#8b5cf6', '#3b82f6'];
 
 export default function AnalyticsPage() {
   const { isDemoMode, demoState, addToast } = useApp();
+  const { currentUser, isPrincipal, activeTeacherId } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -77,7 +79,12 @@ export default function AnalyticsPage() {
     setError(null);
 
     if (isDemoMode) {
-      const demoSessions = demoState.sessions;
+      let demoSessions = demoState.sessions;
+      if (activeTeacherId) {
+        demoSessions = demoSessions.filter(
+          (s) => !s.teacher_id || s.teacher_id === activeTeacherId
+        );
+      }
       const demoStudents = demoState.students;
       setSessions(demoSessions);
       setStudents(demoStudents);
@@ -138,8 +145,8 @@ export default function AnalyticsPage() {
 
     try {
       const [sessionsData, studentsData] = await Promise.all([
-        getSessions(),
-        getStudents(),
+        getSessions(activeTeacherId),
+        getStudents(activeTeacherId),
       ]);
 
       setSessions(sessionsData);
@@ -223,7 +230,7 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     loadAnalytics();
-  }, [isDemoMode]);
+  }, [isDemoMode, activeTeacherId]);
 
   // Export Analytics Summary CSV
   const handleExportCSV = () => {

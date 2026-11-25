@@ -13,6 +13,7 @@ import {
   Sliders,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { getSessions, createSession, endSession } from '../api/sessions';
 import { getSessionAttendance } from '../api/attendance';
 import { getSessionAnalytics } from '../api/analytics';
@@ -32,6 +33,13 @@ import {
 
 export default function SessionsPage() {
   const { isDemoMode, demoState, addToast, refreshActiveSession } = useApp();
+  const {
+    currentUser,
+    isPrincipal,
+    activeTeacherId,
+    selectedTeacherFilter,
+    setSelectedTeacherFilter,
+  } = useAuth();
 
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -59,16 +67,20 @@ export default function SessionsPage() {
     setError(null);
 
     if (isDemoMode) {
-      setSessions(demoState.sessions);
-      if (demoState.sessions.length > 0 && !selectedSession) {
-        handleSelectSession(demoState.sessions[0]);
+      let list = demoState.sessions;
+      if (activeTeacherId) {
+        list = list.filter((s) => !s.teacher_id || s.teacher_id === activeTeacherId);
+      }
+      setSessions(list);
+      if (list.length > 0 && !selectedSession) {
+        handleSelectSession(list[0]);
       }
       setLoading(false);
       return;
     }
 
     try {
-      const data = await getSessions();
+      const data = await getSessions(activeTeacherId);
       setSessions(data);
       if (data.length > 0 && !selectedSession) {
         handleSelectSession(data[0]);
@@ -82,7 +94,7 @@ export default function SessionsPage() {
 
   useEffect(() => {
     loadSessions();
-  }, [isDemoMode]);
+  }, [isDemoMode, activeTeacherId]);
 
   // Handle select session to inspect details
   const handleSelectSession = async (session) => {
@@ -146,6 +158,8 @@ export default function SessionsPage() {
         subject: subject.trim() || 'Untitled Class',
         duration_minutes: dur,
         attendance_threshold: 0.70,
+        teacher_id: currentUser?.teacher_id || '1001',
+        teacher_name: currentUser?.name || 'Dr. Sarah Jenkins',
         started_at: new Date().toISOString(),
         ended_at: null,
         status: 'ACTIVE',
@@ -168,6 +182,8 @@ export default function SessionsPage() {
       const created = await createSession({
         subject: subject.trim(),
         duration_minutes: dur,
+        teacher_id: currentUser?.teacher_id || '1001',
+        teacher_name: currentUser?.name || 'Teacher',
       });
 
       addToast('success', 'Session Created', `Started session #${created.id}.`);

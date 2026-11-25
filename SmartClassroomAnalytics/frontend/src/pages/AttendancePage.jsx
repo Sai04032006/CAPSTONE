@@ -13,6 +13,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { getSessions } from '../api/sessions';
 import { getStudents } from '../api/students';
 import { getSessionAttendance, recordAttendance } from '../api/attendance';
@@ -33,6 +34,7 @@ import {
 
 export default function AttendancePage() {
   const { isDemoMode, demoState, addToast } = useApp();
+  const { currentUser, isPrincipal, activeTeacherId } = useAuth();
 
   const [sessions, setSessions] = useState([]);
   const [selectedSessionId, setSelectedSessionId] = useState('');
@@ -61,12 +63,16 @@ export default function AttendancePage() {
     setError(null);
 
     if (isDemoMode) {
-      setSessions(demoState.sessions);
+      let sList = demoState.sessions;
+      if (activeTeacherId) {
+        sList = sList.filter((s) => !s.teacher_id || s.teacher_id === activeTeacherId);
+      }
+      setSessions(sList);
       setStudents(demoState.students);
-      if (demoState.sessions.length > 0) {
-        const firstId = demoState.sessions[0].id;
+      if (sList.length > 0) {
+        const firstId = sList[0].id;
         setSelectedSessionId(String(firstId));
-        loadSessionData(firstId, demoState.sessions, demoState.students);
+        loadSessionData(firstId, sList, demoState.students);
       }
       setLoading(false);
       return;
@@ -74,8 +80,8 @@ export default function AttendancePage() {
 
     try {
       const [sessionsData, studentsData] = await Promise.all([
-        getSessions(),
-        getStudents(),
+        getSessions(activeTeacherId),
+        getStudents(activeTeacherId),
       ]);
 
       setSessions(sessionsData);
@@ -153,7 +159,7 @@ export default function AttendancePage() {
 
   useEffect(() => {
     loadInitialData();
-  }, [isDemoMode]);
+  }, [isDemoMode, activeTeacherId]);
 
   const handleSessionChange = (newId) => {
     setSelectedSessionId(newId);

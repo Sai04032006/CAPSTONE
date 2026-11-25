@@ -43,6 +43,12 @@ class Student(Base):
         nullable=True
     )
 
+    teacher_id = Column(
+        String,
+        nullable=True,
+        index=True
+    )
+
     created_at = Column(
         DateTime,
         default=datetime.utcnow
@@ -64,6 +70,17 @@ class ClassSession(Base):
     )
 
     subject = Column(
+        String,
+        nullable=True
+    )
+
+    teacher_id = Column(
+        String,
+        nullable=True,
+        index=True
+    )
+
+    teacher_name = Column(
         String,
         nullable=True
     )
@@ -91,6 +108,127 @@ class ClassSession(Base):
     status = Column(
         String,
         default="ACTIVE"
+    )
+
+
+# ============================================================
+# TEACHER
+# ============================================================
+
+class Teacher(Base):
+
+    __tablename__ = "teachers"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    teacher_id = Column(
+        String(4),
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
+    name = Column(
+        String,
+        nullable=False
+    )
+
+    email = Column(
+        String,
+        nullable=True
+    )
+
+    subject = Column(
+        String,
+        nullable=True
+    )
+
+    password_hash = Column(
+        String,
+        nullable=False
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow
+    )
+
+
+# ============================================================
+# PRINCIPAL
+# ============================================================
+
+class Principal(Base):
+
+    __tablename__ = "principals"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    username = Column(
+        String,
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
+    name = Column(
+        String,
+        default="Principal"
+    )
+
+    email = Column(
+        String,
+        nullable=True
+    )
+
+    password_hash = Column(
+        String,
+        nullable=False
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow
+    )
+
+
+# ============================================================
+# TEACHER STUDENT MAPPING
+# ============================================================
+
+class TeacherStudent(Base):
+
+    __tablename__ = "teacher_students"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    teacher_id = Column(
+        String(4),
+        nullable=False,
+        index=True
+    )
+
+    student_id = Column(
+        String,
+        nullable=False,
+        index=True
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow
     )
 
 

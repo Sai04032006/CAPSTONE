@@ -1,7 +1,8 @@
 import apiClient from './client';
 
-export const getStudents = async () => {
-  const response = await apiClient.get('/students/');
+export const getStudents = async (teacherId = null) => {
+  const url = teacherId ? `/students/?teacher_id=${encodeURIComponent(teacherId)}` : '/students/';
+  const response = await apiClient.get(url);
   return response.data;
 };
 
@@ -15,6 +16,7 @@ export const createStudent = async (studentData) => {
     student_id: studentData.student_id.trim(),
     name: studentData.name.trim(),
     email: studentData.email ? studentData.email.trim() : null,
+    teacher_id: studentData.teacher_id ? String(studentData.teacher_id).trim() : null,
   });
   return response.data;
 };

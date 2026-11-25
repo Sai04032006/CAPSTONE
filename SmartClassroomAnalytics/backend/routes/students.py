@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from pgvector.sqlalchemy import Vector
 
 from ..database.database import get_db
-from ..database.models import Student
+from ..database.models import Student, TeacherStudent, ClassSession, Attendance
 from ..schemas.student import (
     StudentCreate,
     StudentResponse,
@@ -37,14 +37,39 @@ router = APIRouter(
     response_model=list[StudentResponse]
 )
 def get_students(
+    teacher_id: str | None = None,
     db: Session = Depends(get_db)
 ):
     """
     Returns all registered students with an indicator of whether
-    their 512-d facial embedding is enrolled in the PostgreSQL face_embeddings table.
+    their 512-d facial embedding is enrolled. If teacher_id is provided,
+    filters to only students belonging to that teacher.
     """
+    query = db.query(Student)
+
+    if teacher_id:
+        # Find students linked via TeacherStudent or Student.teacher_id or attended teacher's sessions
+        assigned_ids = {
+            ts.student_id for ts in db.query(TeacherStudent).filter(TeacherStudent.teacher_id == teacher_id).all()
+        }
+        session_ids = [
+            s.id for s in db.query(ClassSession).filter(ClassSession.teacher_id == teacher_id).all()
+        ]
+        if session_ids:
+            att_sids = {
+                a.student_id for a in db.query(Attendance).filter(Attendance.session_id.in_(session_ids)).all()
+            }
+            assigned_ids.update(att_sids)
+
+        if assigned_ids:
+            query = query.filter(
+                (Student.teacher_id == teacher_id) | (Student.student_id.in_(assigned_ids))
+            )
+        else:
+            query = query.filter(Student.teacher_id == teacher_id)
+
     students = (
-        db.query(Student)
+        query
         .order_by(Student.name.asc())
         .all()
     )
@@ -64,6 +89,7 @@ def get_students(
                 student_id=s.student_id,
                 name=s.name,
                 email=s.email,
+                teacher_id=s.teacher_id,
                 has_embedding=str(s.student_id) in embedded_ids,
             )
         )
@@ -109,10 +135,18 @@ def create_student(
     new_student = Student(
         student_id=student_id_clean,
         name=name_clean,
-        email=student.email.strip() if student.email else None
+        email=student.email.strip() if student.email else None,
+        teacher_id=student.teacher_id.strip() if student.teacher_id else None
     )
 
     db.add(new_student)
+
+    if student.teacher_id:
+        db.add(TeacherStudent(
+            teacher_id=student.teacher_id.strip(),
+            student_id=student_id_clean
+        ))
+
     db.commit()
     db.refresh(new_student)
 
@@ -121,6 +155,7 @@ def create_student(
         student_id=new_student.student_id,
         name=new_student.name,
         email=new_student.email,
+        teacher_id=new_student.teacher_id,
         has_embedding=False,
     )
 
